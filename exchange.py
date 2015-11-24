@@ -34,6 +34,9 @@ class DummyCurrencyProvider(BaseCurrencyProvider):
 class CurrencyProvider(BaseCurrencyProvider):
     url_template = url = "https://currency-api.appspot.com/api/{currency_in}/{currency_out}.json"
 
+    def __getitem__(self, item):
+        return self.get_rate(*item)
+
     def get_url(self, currency_in, currency_out):
         return self.url_template.format(currency_in=currency_in, currency_out=currency_out)
 
