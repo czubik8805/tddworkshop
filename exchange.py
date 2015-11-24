@@ -1,14 +1,23 @@
+import urllib
+import json
+
+
 class ExchangeException(Exception):
     pass
 
 
 class BaseCurrencyProvider(object):
+    def __init__(self, *args, **kwargs):
+        self.args = args
+        self.kwargs = kwargs
+
     def get_rate(self, currency_in, currency_out):
         raise NotImplementedError
 
 
 class DummyCurrencyProvider(BaseCurrencyProvider):
-    def __init__(self, exchange_rates=None):
+    def __init__(self, exchange_rates=None, *args, **kwargs):
+        super(DummyCurrencyProvider, self).__init__(*args, **kwargs)
         self.exchange_rates = exchange_rates or {
             ('eur', 'pln'): 4.24,
             ('pln', 'eur'): 0.25,
@@ -23,7 +32,20 @@ class DummyCurrencyProvider(BaseCurrencyProvider):
 
 
 class CurrencyProvider(BaseCurrencyProvider):
-    pass
+    url_template = url = "https://currency-api.appspot.com/api/{currency_in}/{currency_out}.json"
+
+    def get_url(self, currency_in, currency_out):
+        return self.url_template.format(currency_in=currency_in, currency_out=currency_out)
+
+    def get_rate(self, currency_in, currency_out):
+        connection = urllib.urlopen(self.get_url(currency_in, currency_out))
+        result = connection.read()
+        connection.close()
+
+        result = json.loads(result)
+        if not result.get('success'):
+            raise ExchangeException(result.get('message'))
+        return result['rate']
 
 
 class CurrencyExchanger(object):
